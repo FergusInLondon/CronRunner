@@ -1,0 +1,11 @@
+#!/usr/bin/env php
+<?php require_once __DIR__.'/vendor/autoload.php';
+
+// Configure Pimple Container
+$container = new Pimple\Container();
+(new G\Yaml2Pimple\YamlFileLoader(
+        new G\Yaml2Pimple\ContainerBuilder($container),
+        new Symfony\Component\Config\FileLocator(__DIR__.'/config')
+    ))->load('dependencies.yml');
+
+(new \CronRunner\Runner( $container ))->executeTasks();

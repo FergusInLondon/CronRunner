@@ -1,0 +1,4 @@
+output_email: fergus@fergus.london
+output_file:  logs/output.log
+monolog_file: logs/cronrunner.log
+

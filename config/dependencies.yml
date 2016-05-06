@@ -1,0 +1,9 @@
+parameters:
+  config_dir: /home/fergus/Code/CronRunner/config
+
+services:
+  Config:
+    class:     Configula\Config
+    arguments: [%config_dir%]
+  Scheduler:
+    class:     GO\Scheduler

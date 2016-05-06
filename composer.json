@@ -1,0 +1,19 @@
+{
+    "name": "fergus/task-runner",
+    "authors": [
+        {
+            "name": "Fergus Morrow",
+            "email": "fergus@fergus.london"
+        }
+    ],
+    "require": {
+        "pimple/pimple": "^3.0",
+        "caseyamcl/Configula": "^2.4",
+        "peppeocchi/php-cron-scheduler": "^1.3",
+        "monolog/monolog": "^1.19",
+        "gonzalo123/yaml2pimple": "dev-master"
+    },
+    "autoload": {
+        "psr-4" : { "CronRunner\\" : "" }
+    }
+}
