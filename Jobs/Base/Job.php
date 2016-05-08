@@ -2,8 +2,11 @@
 
 abstract class Job {
     
-    protected /** \Pimple\Container */ $container;
-    protected /** \Configula\Config */ $configuration;
+    /** @var \Pimple\Container */ 
+    protected $container;
+
+    /** @var \Configula\Config */
+    protected $configuration;
 
     public function __construct(
         \Pimple\Container $container
@@ -13,17 +16,17 @@ abstract class Job {
     }
     
     /**
+     * After a Job instance is created, configure() is called - passing
+     *  with it a \GO\Job\Job object for configuring timing intervals.
      *
-     *
-     *
-     *
+     * @param \GO\Job\Job
      */
-    abstract public function configure(\GO\Scheduler $scheduler);
+    abstract public function configure(\GO\Job\Job $job);
+    
     
     /**
-     *
-     *
-     *
+     * When the interval requirements are satisfied, execute() is run which
+     *  is where the task actually does its magic.
      */
     abstract public function execute();
 }

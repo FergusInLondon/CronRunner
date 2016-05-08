@@ -1,13 +1,16 @@
 <?php namespace CronRunner;
 
+/**
+ * Runner Class
+ *
+ * This object is responsible for ensuring individual Job clases are
+ *  instantiated and configured. It also provides a wrapper the
+ *  Scheduler object.
+ */
 class Runner {
 
-    /** \Pimple\Container */
+    /** @var \Pimple\Container */
     private $container;
-
-    /** array */
-    private $jobs;
-
 
     public function __construct(
         \Pimple\Container $container
@@ -17,33 +20,44 @@ class Runner {
     }
     
 
+    /**
+     * Dynamically load all available Job objects, creating instances and 
+     *  passing in the service container for configuration (i.e Scheduling)
+     */
     private function configureJobs() {
+        $scheduler     = $this->container['Scheduler'];
+        $jobsFolder    = $this->container['Config']->getItem('jobs_folder', '/Jobs');
+        $jobsNamespace = $this->container['Config']->getItem('jobs_namespace', '\CronRunner\Jobs\\');
+
+        // Retrieve list of files in the /Jobs directory
         $classFiles = array_diff(
-            scandir(__DIR__.'/Jobs'),
+            scandir(__DIR__.$jobsFolder),
             array('..', '.', 'Base')
         );
         
+        // Iterate through all files found, verify that they are valid Job 
+        //  classes, and then instantiate and configure.
         foreach ($classFiles as $fileName) {
             if (!strpos($fileName, '.php')) {
                 continue;
             }
             
-            $class = sprintf('\CronRunner\Jobs\%s', substr($fileName, 0, -4));
+            $class = $jobsNamespace . substr($fileName, 0, -4);
             
             if (is_subclass_of($class, '\CronRunner\Jobs\Base\Job')) {
-                $this->jobs[] = new $class( $this->container );
+                $job = new $class( $this->container );
+                $job->configure(
+                    $this->container['Scheduler']->call([$job, 'execute'])
+                );
             }
         }
     }
     
 
+    /**
+     * Run the Scheduler.
+     */
     public function executeTasks() {
-        foreach ($this->jobs as $job) {
-            $job->configure(
-                $this->container['Scheduler']
-            );
-        }
-        
         $this->container['Scheduler']->run();
     }
 }
