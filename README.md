@@ -1,36 +1,33 @@
 # CronRunner (PHP)
 ## A skeleton application for writing back-end time-based jobs
 
-Most web applications depend upon complex tasks running automatically behind the scenes, most often initiated by Cron. 
+Most web applications rely upon complex tasks running automatically behind the scenes, most often initiated by Cron. Whilst some frameworks - such as Laravel - provide a mechanism for writing these as part of your core codebase - sometimes it can be beneficial to break automated tasks out of your primary repository.
 
-Whilst most frameworks provide mechanisms for writing these as part of your main code-base, this can at times prove to be problematic and costly. Sometimes a more preferable approach is to have a dedicated node running this tasks in isolation.
-
-That's where CronRunner comes in - a minimalist combination of 3 packages, with enough scaffolding to enable you to quickly write 
-
-require on complex CronRunner allows you to decouple time-based jobs out of the
+That's where CronRunner comes in - a minimalist combination of 3 packages, with enough scaffolding to enable you to quickly write time-based jobs without coupling them to your core codebase. Allowing smaller deployments to environments where the sole task is running supporting services.
 
 
 ### Features
 
-- Built in dependency injection with Pimple, and the ability to configure dependencies in Yaml. (via Yml2Pimple)
+- Built in dependency injection with Pimple, and the ability to configure dependencies in Yaml. (via [Yml2Pimple](https://github.com/gonzalo123/yml2pimple))
 
-- Fluent interface for scheduling tasks, in a similar fashion to Laravel. (via php-cron-scheduler)
+- Fluent interface for scheduling tasks, in a similar fashion to Laravel. (via [php-cron-scheduler](https://github.com/peppeocchi/php-cron-scheduler/))
 
-- Flexible configuration options, powered by your choice of .yml, .ini, .json or .php files. (via Configula)
+- Flexible configuration options, powered by your choice of .yml, .ini, .json or .php files. (via [Configula](https://github.com/caseyamcl/Configula))
 
-- Simplistic scaffolding, allowing rapid development with minimal fuss or confusion - simply add any required configuration data to the Yml files, and write your task.
+- Simplistic scaffolding, allowing rapid development with minimal fuss or confusion - simply add any required configuration data to the Yml files, and write your task class files.
+
 
 ## Usage
 
 Clone this repository, and do some basic housekeeping - such as updating the composer.json file with your information.
 
-    $ git clone hxxp...
+    $ git clone https://github.com/FergusInLondon/CronRunner.git
     $ nano composer.json
 
 Then edit the crontab file, adding an entry for the `run` file.
 
     $ crontab -e
-     * * * * * /path/to/repo/run 1>> /de	v/null 2>&1
+     * * * * * /path/to/repo/run 1>> /dev/null 2>&1
 
 You're ready to go. Simple.
 
@@ -42,13 +39,15 @@ The chances are that you wont want to continue using the `CronRunner` namespace.
 
 ### Writing a Job
 
-Writing a Job is simple, and involves creating a new class located in `Jobs`, which inherits from `BaseJob`. There are only two methods that a subclass needs to implement: `configure` and `execute`.
+Writing a new Job is simple, and only requires writing a class and placing it in the 'Jobs' folder - by default located at `/Jobs`, or set via the `jobs_folder` configuration key - located in `/config/`.
 
-#### `configure($scheduler)`
+A Job must inherit from `CronRunner\Jobs\Base\Job` - and implement two methods: `configure()` and `execute()`.
 
-This function is responsible for configuring your task, and specifying options such as logging and timing. CronRunner delegates the configuration of this information to the individual task - allowing a greater amount of flexibility.
+#### `abstract public function configure(\GO\Job\Job $job)`
 
-It takes one parameter, a Scheduler object. For information on how to configure this object, see the documentation associated with php-cron-scheduler.
+This function is responsible for the configuration of the job: specifying it's timing, and doing other tasks that may be required upon initialisation.
+
+CronRunner delegates this responsibility by passing in a [Job object]() from the underlying php-cron-manager library. For information on how to configure this object, see the documentation associated with php-cron-scheduler.
 
 As this method does configuration, it's one of the more likely places that you're going to need to use the built in configuration tool - Configula.
 
@@ -58,17 +57,16 @@ Scheduling can be done via a fluent interface allowing more readable expressions
 
 In this example we retrieve two values from our configuration data (see below) - a log file and an admin email address - and we schedule the task to run hourly.
 
-    public function configure(\GO\Scheduler $scheduler) {
-        $logOutput  = $this->configuration->getValue('logfile', true);
-        $adminEmail = $this->configuration->getValue('adminEmail');
+    public function configure(\GO\Job\Job $job) {
+        $logOutput  = $this->configuration->getItem('output_file', 'logs/output.log');
+        $adminEmail = $this->configuration->getItem('output_email', 'admin@localhost');
 
-        $scheduler->call([$this, 'execute'])
-            ->every()->hour()
-            ->output($logOutput)
+        $job->every()->hour(06)
+            ->output(sprintf("%s/../%s", __DIR__, $logOutput), true)
             ->email($adminEmail);
     }
 
-#### `execute()`
+#### `abstract public function execute()`
 
 This method is where you implement the actual logic to your command, and it's called at the interval specified in the configuration.
 
@@ -106,16 +104,37 @@ For more information, see The Pimple Documentation.
 
 - Make use of Monolog, and their [extensive range of plugins](https://github.com/Seldaek/monolog/wiki/Third-Party-Packages) - alternatively, write your own using the [PSR-3 interface](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md).
 
-### Why is this structured as an app, and not a library?
+## Examples
 
-This is released primarily as a mechanism for quickly writing time based tasks without having implementing them directly in the core code-base of an application, allowing you the advantage of having a host dedicated to task running without the need for a full deployment.
+This is a simple example that is scheduled to execute once per minute, where it checks for the presence of a file - creating it if it doesn't exist.
 
-If you wanted to implement this in an existing project, it's quite likely that you're already using a framework which has functionality for task scheduling.
+    class JobExample extends Base/Job {
+        public function configure(\GO\Job\Job $job) {
+            $job->every()->minute();        
+        }
+        
+        public function execute() {
+            $file = $this->container["Config"]->getItem('file_check');
+            
+            if ($file && !file_exists($file)) {
+                touch($file);
+            }
+        }
+    }
 
-This is intended for scenarios where you need to regularly check and process a queue, query external systems, run statistical queries on a database or . As such, it should be viewed as something akin to a minimal framework - one which can rapidly be built upon using other libraries.
+There are also two examples contained in this repository, that demonstrate the logging and output features of php-cron-scheduler. ([ExampleJob](https://github.com/FergusInLondon/CronRunner/blob/master/Jobs/ExampleJob.php) and [LoggedExampleJob](https://github.com/FergusInLondon/CronRunner/blob/master/Jobs/LoggedExampleJob.php))
+
+## Why is this structured as an app, and not a library?
+
+This is released primarily as a mechanism for quickly writing time based tasks without having to implement them directly in the core code-base of an application, allowing you the advantage of having a host dedicated to task running without the need for a full deployment.
+
+With this in mind, it's best viewing this as more of a framework than a library. If you wanted to use this functionality in an existing project, it's quite likely that you're already using a framework which has functionality for task scheduling.
+
+I *may* refactor this in to a library, and continue this repository as a wrapper around the library; allowing existing projects to use the functionality contained.
+
 
 ## Licensing
 
 This is licensed under the GNU General Public License,
 
-Special mentions go to the Configula, php-cron-scheduler and Pimple projects - which this skeleton utilises.
+Special mentions go to the [Configula](), [php-cron-scheduler]() and [Pimple]() projects - which this skeleton utilises.
