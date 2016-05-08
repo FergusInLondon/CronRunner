@@ -9,5 +9,7 @@ $container = new Pimple\Container();
         new Symfony\Component\Config\FileLocator(__DIR__.'/config')
     ))->load('dependencies.yml');
 
+
 // Execute CronRunner tasks
-(new \CronRunner\Runner( $container ))->executeTasks();
+(new \CronRunner\Runner( $container , in_array('--debug', $argv))
+    ->executeTasks();
