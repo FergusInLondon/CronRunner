@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Cronrunner : A skeleton application for writing back-end time-based jobs">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Cronrunner</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/FergusInLondon/CronRunner">View on GitHub</a>
+
+          <h1 id="project_title">Cronrunner</h1>
+          <h2 id="project_tagline">A skeleton application for writing back-end time-based jobs</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/FergusInLondon/CronRunner/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/FergusInLondon/CronRunner/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p>Most web applications rely upon complex tasks running automatically behind the scenes, most often initiated by Cron. Whilst some frameworks - such as Laravel - provide a mechanism for writing these as part of your core codebase - sometimes it can be beneficial to break automated tasks out of your primary repository.</p>
+
+<p>That's where CronRunner comes in - a minimalist combination of 3 packages, with enough scaffolding to enable you to quickly write time-based jobs without coupling them to your core codebase. Allowing smaller deployments to environments where the sole task is running supporting services.</p>
+
+<h3>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Features</h3>
+
+<ul>
+<li><p>Built in dependency injection with Pimple, and the ability to configure dependencies in Yaml. (via <a href="https://github.com/gonzalo123/yml2pimple">Yml2Pimple</a>)</p></li>
+<li><p>Fluent interface for scheduling tasks, in a similar fashion to Laravel. (via <a href="https://github.com/peppeocchi/php-cron-scheduler/">php-cron-scheduler</a>)</p></li>
+<li><p>Flexible configuration options, powered by your choice of .yml, .ini, .json or .php files. (via <a href="https://github.com/caseyamcl/Configula">Configula</a>)</p></li>
+<li><p>Simplistic scaffolding, allowing rapid development with minimal fuss or confusion - simply add any required configuration data to the Yml files, and write your task class files.</p></li>
+</ul>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Clone this repository, and do some basic housekeeping - such as updating the composer.json file with your information.</p>
+
+<pre><code>$ git clone https://github.com/FergusInLondon/CronRunner.git
+$ nano composer.json
+</code></pre>
+
+<p>Then edit the crontab file, adding an entry for the <code>run</code> file.</p>
+
+<pre><code>$ crontab -e
+ * * * * * /path/to/repo/run 1&gt;&gt; /dev/null 2&gt;&amp;1
+</code></pre>
+
+<p>You're ready to go. Simple.</p>
+
+<h3>
+<a id="changing-the-namespace" class="anchor" href="#changing-the-namespace" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Changing the namespace</h3>
+
+<p>The chances are that you wont want to continue using the <code>CronRunner</code> namespace. Just to a simple find+replace in your codebase for <code>CronRunner</code>, replacing it with your desired namespace.</p>
+
+<p><strong>Ensure that composer.json is also updated to reflect this new namespace!</strong></p>
+
+<h3>
+<a id="writing-a-job" class="anchor" href="#writing-a-job" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Writing a Job</h3>
+
+<p>Writing a new Job is simple, and only requires writing a class and placing it in the 'Jobs' folder - by default located at <code>/Jobs</code>, or set via the <code>jobs_folder</code> configuration key - located in <code>/config/</code>.</p>
+
+<p>A Job must inherit from <code>CronRunner\Jobs\Base\Job</code> - and implement two methods: <code>configure()</code> and <code>execute()</code>.</p>
+
+<h4>
+<a id="abstract-public-function-configuregojobjob-job" class="anchor" href="#abstract-public-function-configuregojobjob-job" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><code>abstract public function configure(\GO\Job\Job $job)</code>
+</h4>
+
+<p>This function is responsible for the configuration of the job: specifying it's timing, and doing other tasks that may be required upon initialisation.</p>
+
+<p>CronRunner delegates this responsibility by passing in a <a href="">Job object</a> from the underlying php-cron-manager library. For information on how to configure this object, see the documentation associated with php-cron-scheduler.</p>
+
+<p>As this method does configuration, it's one of the more likely places that you're going to need to use the built in configuration tool - Configula.</p>
+
+<p>Scheduling can be done via a fluent interface allowing more readable expressions like <code>every()-&gt;hour()</code>, or alternatively Cron Expressions such as <code>-&gt;at('* * * * *')</code>. One possible way for writing flexible tasks is to store the Cron Expression in a configuration .yml file.</p>
+
+<p><strong>Example:</strong></p>
+
+<p>In this example we retrieve two values from our configuration data (see below) - a log file and an admin email address - and we schedule the task to run hourly.</p>
+
+<pre><code>public function configure(\GO\Job\Job $job) {
+    $logOutput  = $this-&gt;configuration-&gt;getItem('output_file', 'logs/output.log');
+    $adminEmail = $this-&gt;configuration-&gt;getItem('output_email', 'admin@localhost');
+
+    $job-&gt;every()-&gt;hour(06)
+        -&gt;output(sprintf("%s/../%s", __DIR__, $logOutput), true)
+        -&gt;email($adminEmail);
+}
+</code></pre>
+
+<h4>
+<a id="abstract-public-function-execute" class="anchor" href="#abstract-public-function-execute" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><code>abstract public function execute()</code>
+</h4>
+
+<p>This method is where you implement the actual logic to your command, and it's called at the interval specified in the configuration.</p>
+
+<p><strong>Example:</strong></p>
+
+<p>The simplest example would be one that simply echos a message to STDOUT:</p>
+
+<pre><code>public function execute() {
+   printf("We're running without any intervention required.\n");
+}
+</code></pre>
+
+<p>Of course, you can do pretty much what you want in here.</p>
+
+<h3>
+<a id="adding-configuration-options" class="anchor" href="#adding-configuration-options" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Adding Configuration Options</h3>
+
+<p>If your task(s) rely upon additional configuration options, such as database credentials, then rather than hard-coding them you can include them dynamically.</p>
+
+<p>Simply add a file (in either .yml, .ini, .json or .php format) to the config directory. Upon execution all files in this directory are parsed, and the data contained inside is available from <code>$this-&gt;configuration</code>. (via Configula)</p>
+
+<p>For more information, see The Configula Documentation.</p>
+
+<h3>
+<a id="adding-dependencies" class="anchor" href="#adding-dependencies" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Adding Dependencies</h3>
+
+<p>If your task(s) has external dependencies (i.e other Composer libraries) then add them to the <code>dependencies.yml</code> file, located in the config directory.</p>
+
+<p>Upon execution the Dependency Injection Container (Pimple) is configured from this Yaml file. This is then injected in to your custom Job classes, and is accessible via <code>$this-&gt;container</code>.</p>
+
+<p>For more information, see The Pimple Documentation.</p>
+
+<h3>
+<a id="usage-tips" class="anchor" href="#usage-tips" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage Tips</h3>
+
+<ul>
+<li><p>Use a combination of Cron Expressions and the configuration .yml files to enable task intervals to be stored outside of code.</p></li>
+<li><p>Explore the php-cron-scheduler documentation for advanced functionality such as: . . .</p></li>
+<li><p>Make use of Monolog, and their <a href="https://github.com/Seldaek/monolog/wiki/Third-Party-Packages">extensive range of plugins</a> - alternatively, write your own using the <a href="https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md">PSR-3 interface</a>.</p></li>
+</ul>
+
+<h2>
+<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>This is a simple example that is scheduled to execute once per minute, where it checks for the presence of a file - creating it if it doesn't exist.</p>
+
+<pre><code>class JobExample extends Base/Job {
+    public function configure(\GO\Job\Job $job) {
+        $job-&gt;every()-&gt;minute();        
+    }
+
+    public function execute() {
+        $file = $this-&gt;container["Config"]-&gt;getItem('file_check');
+
+        if ($file &amp;&amp; !file_exists($file)) {
+            touch($file);
+        }
+    }
+}
+</code></pre>
+
+<p>There are also two examples contained in this repository, that demonstrate the logging and output features of php-cron-scheduler. (<a href="https://github.com/FergusInLondon/CronRunner/blob/master/Jobs/ExampleJob.php">ExampleJob</a> and <a href="https://github.com/FergusInLondon/CronRunner/blob/master/Jobs/LoggedExampleJob.php">LoggedExampleJob</a>)</p>
+
+<h2>
+<a id="why-is-this-structured-as-an-app-and-not-a-library" class="anchor" href="#why-is-this-structured-as-an-app-and-not-a-library" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Why is this structured as an app, and not a library?</h2>
+
+<p>This is released primarily as a mechanism for quickly writing time based tasks without having to implement them directly in the core code-base of an application, allowing you the advantage of having a host dedicated to task running without the need for a full deployment.</p>
+
+<p>With this in mind, it's best viewing this as more of a framework than a library. If you wanted to use this functionality in an existing project, it's quite likely that you're already using a framework which has functionality for task scheduling.</p>
+
+<p>I <em>may</em> refactor this in to a library, and continue this repository as a wrapper around the library; allowing existing projects to use the functionality contained.</p>
+
+<h2>
+<a id="licensing" class="anchor" href="#licensing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Licensing</h2>
+
+<p>This is licensed under the GNU General Public License,</p>
+
+<p>Special mentions go to the <a href="">Configula</a>, <a href="">php-cron-scheduler</a> and <a href="">Pimple</a> projects - which this skeleton utilises.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Cronrunner maintained by <a href="https://github.com/FergusInLondon">FergusInLondon</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
